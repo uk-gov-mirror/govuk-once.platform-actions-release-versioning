@@ -8,15 +8,6 @@ on:
         required: false
         type: string
         default: "24"
-      github-app-id:
-        description: "GitHub App ID used to create tags and releases"
-        type: string
-        required: true
-
-    secrets:
-      GITHUB_APP_PRIVATE_KEY:
-        description: "Private key for the GitHub App"
-        required: true
 
     outputs:
       released:
@@ -30,7 +21,7 @@ on:
         value: ${{ jobs.release.outputs.type }}
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
@@ -48,19 +39,13 @@ jobs:
       type: ${{ steps.semantic-release.outputs.type }}
 
     steps:
-      - name: Generate GitHub App token
-        id: github-app-token
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
-        with:
-          app-id: ${{ inputs.github-app-id }}
-          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Checkout calling repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-          token: ${{ steps.github-app-token.outputs.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -79,7 +64,7 @@ jobs:
       - name: Run semantic-release
         id: semantic-release
         env:
-          GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           node --input-type=module <<'NODE'
           import semanticRelease from "semantic-release";
