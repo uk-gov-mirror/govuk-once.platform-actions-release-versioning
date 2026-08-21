@@ -1,0 +1,136 @@
+name: Semantic Release
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "Node.js version used to run semantic-release"
+        required: false
+        type: string
+        default: "24"
+
+    secrets:
+      GITHUB_APP_ID:
+        description: "GitHub App ID used to create tags and releases"
+        required: true
+      GITHUB_APP_PRIVATE_KEY:
+        description: "Private key for the GitHub App"
+        required: true
+
+    outputs:
+      released:
+        description: "Whether a new semantic release was created"
+        value: ${{ jobs.release.outputs.released }}
+      version:
+        description: "The new semantic version without the v prefix"
+        value: ${{ jobs.release.outputs.version }}
+      type:
+        description: "The release type: major, minor or patch"
+        value: ${{ jobs.release.outputs.type }}
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Create semantic release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    concurrency:
+      group: ${{ github.repository }}-semantic-release
+      cancel-in-progress: false
+
+    outputs:
+      released: ${{ steps.semantic-release.outputs.released }}
+      version: ${{ steps.semantic-release.outputs.version }}
+      type: ${{ steps.semantic-release.outputs.type }}
+
+    steps:
+      - name: Generate GitHub App token
+        id: github-app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.GITHUB_APP_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Checkout calling repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ steps.github-app-token.outputs.token }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Run semantic-release programmatically so its result can be exposed
+      # as explicit GitHub Actions outputs.
+      - name: Run semantic-release
+        id: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          import semanticRelease from "semantic-release";
+          import { appendFileSync } from "node:fs";
+
+          const result = await semanticRelease();
+
+          const outputs = result
+            ? {
+                released: "true",
+                version: result.nextRelease.version,
+                type: result.nextRelease.type
+              }
+            : {
+                released: "false",
+                version: "",
+                type: ""
+              };
+
+          for (const [name, value] of Object.entries(outputs)) {
+            appendFileSync(
+              process.env.GITHUB_OUTPUT,
+              `${name}=${value}\n`
+            );
+          }
+
+          if (result) {
+            console.log(
+              `Created ${outputs.type} release v${outputs.version}`
+            );
+          } else {
+            console.log("No semantic release was required");
+          }
+          NODE
+
+      - name: Write release summary
+        env:
+          RELEASED: ${{ steps.semantic-release.outputs.released }}
+          VERSION: ${{ steps.semantic-release.outputs.version }}
+          RELEASE_TYPE: ${{ steps.semantic-release.outputs.type }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          {
+            echo "## Semantic release"
+            echo
+
+            if [ "$RELEASED" = "true" ]; then
+              echo "Created **${RELEASE_TYPE} release v${VERSION}**."
+              echo
+              echo "[View GitHub release](${SERVER_URL}/${REPOSITORY}/releases/tag/v${VERSION})"
+            else
+              echo "No semantic release was required."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
