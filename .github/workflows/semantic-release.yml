@@ -8,11 +8,12 @@ on:
         required: false
         type: string
         default: "24"
+      github-app-id:
+        description: "GitHub App ID used to create tags and releases"
+        type: string
+        required: true
 
     secrets:
-      GITHUB_APP_ID:
-        description: "GitHub App ID used to create tags and releases"
-        required: true
       GITHUB_APP_PRIVATE_KEY:
         description: "Private key for the GitHub App"
         required: true
@@ -51,7 +52,7 @@ jobs:
         id: github-app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
-          app-id: ${{ secrets.GITHUB_APP_ID }}
+          app-id: ${{ inputs.github-app-id }}
           private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Checkout calling repository

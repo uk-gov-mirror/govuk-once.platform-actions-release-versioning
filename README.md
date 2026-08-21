@@ -44,29 +44,27 @@ jobs:
   release:
     name: Create Release
     needs: qualityChecks
-    uses: ORGANISATION/github-actions-workflows/.github/workflows/semantic-release.yml@v1
+    uses: govuk-once/github-actions-workflows/.github/workflows/semantic-release.yml@v1
     permissions:
       contents: read
     with:
       node-version: "24"
+      github-app-id: ${{ vars.GH_TAG_RELEASE_APP_ID }}
     secrets:
-      GITHUB_APP_ID: ${{ secrets.GH_TAG_RELEASE_APP_ID }}
       GITHUB_APP_PRIVATE_KEY: ${{ secrets.GH_TAG_RELEASE_PRIVATE_KEY }}
 ```
-
-Replace `ORGANISATION` with the GitHub organisation that owns this repository.
 
 ### Inputs
 
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `node-version` | No | `24` | Node.js version used to install dependencies and run semantic-release. |
+| `github-app-id` | Yes | | ID of the GitHub App used to create tags and releases. |
 
 ### Secrets
 
 | Secret | Required | Description |
 | --- | --- | --- |
-| `GITHUB_APP_ID` | Yes | ID of the GitHub App used to create tags and releases. |
 | `GITHUB_APP_PRIVATE_KEY` | Yes | Private key belonging to the GitHub App. |
 
 ### Outputs
@@ -122,7 +120,7 @@ jobs:
   notifyRelease:
     name: Notify Production Release
     needs: [release, deployment]
-    uses: ORGANISATION/github-actions-workflows/.github/workflows/release-notification.yml@v1
+    uses: govuk-once/github-actions-workflows/.github/workflows/release-notification.yml@v1
     permissions:
       id-token: write
       contents: read
@@ -202,7 +200,7 @@ jobs:
   release:
     name: Create Release
     needs: qualityChecks
-    uses: ORGANISATION/github-actions-workflows/.github/workflows/semantic-release.yml@v1
+    uses: govuk-once/github-actions-workflows/.github/workflows/semantic-release.yml@v1
     permissions:
       contents: read
     with:
@@ -223,7 +221,7 @@ jobs:
   notifyRelease:
     name: Notify Production Release
     needs: [release, deployment]
-    uses: ORGANISATION/github-actions-workflows/.github/workflows/release-notification.yml@v1
+    uses: govuk-once/github-actions-workflows/.github/workflows/release-notification.yml@v1
     permissions:
       id-token: write
       contents: read
@@ -261,7 +259,7 @@ Where appropriate, use the `job_workflow_ref` OIDC claim to restrict role assump
 Consumers should reference an approved major version:
 
 ```yaml
-uses: ORGANISATION/github-actions-workflows/.github/workflows/semantic-release.yml@v1
+uses: govuk-once/github-actions-workflows/.github/workflows/semantic-release.yml@v1
 ```
 
 Workflow releases should use immutable semantic-version tags such as `v1.0.0`. A maintained `v1` tag may point to the latest backwards-compatible `v1` release.
