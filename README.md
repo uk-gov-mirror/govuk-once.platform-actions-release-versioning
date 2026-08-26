@@ -49,9 +49,6 @@ jobs:
       contents: read
     with:
       node-version: "24"
-      github-app-id: ${{ vars.GH_TAG_RELEASE_APP_ID }}
-    secrets:
-      GITHUB_APP_PRIVATE_KEY: ${{ secrets.GH_TAG_RELEASE_PRIVATE_KEY }}
 ```
 
 ### Inputs
@@ -59,13 +56,6 @@ jobs:
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `node-version` | No | `24` | Node.js version used to install dependencies and run semantic-release. |
-| `github-app-id` | Yes | | ID of the GitHub App used to create tags and releases. |
-
-### Secrets
-
-| Secret | Required | Description |
-| --- | --- | --- |
-| `GITHUB_APP_PRIVATE_KEY` | Yes | Private key belonging to the GitHub App. |
 
 ### Outputs
 
@@ -104,10 +94,6 @@ For example:
   ]
 }
 ```
-
-The GitHub App must be installed on the calling repository and granted the minimum permissions required to create Git tags and GitHub releases. If the caller's semantic-release configuration comments on issues or pull requests, the App will also need the corresponding permissions.
-
-The workflow uses a GitHub App token instead of the repository's standard `GITHUB_TOKEN`. This allows release-created events to support future event-driven automation and avoids relying on the restricted event behaviour of `GITHUB_TOKEN`.
 
 ## Production release notification
 
@@ -205,9 +191,6 @@ jobs:
       contents: read
     with:
       node-version: "24"
-    secrets:
-      GITHUB_APP_ID: ${{ secrets.GH_TAG_RELEASE_APP_ID }}
-      GITHUB_APP_PRIVATE_KEY: ${{ secrets.GH_TAG_RELEASE_PRIVATE_KEY }}
 
   deployment:
     name: Deploy
